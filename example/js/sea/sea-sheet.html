@@ -1,0 +1,639 @@
+<html>
+	<head>
+		<title>Sea - Sheet Builder</title>
+		<style>
+			:root{
+				--bg: #212728;
+				--fg: #263f43;
+				--tc: #b7b5b5;
+				--pc: #53b9c7;
+				--sc: #76ABAE;
+				--wc: #c75353;
+			}
+			body{margin: 0px; width: 100%; height: 100vh; background: var(--bg); color: var(--tc)}
+			input, textarea{
+				width: 100%;
+				background: var(--bg);
+				border: none;
+				margin-bottom: 1rem;
+				padding: .25rem;
+				color: var(--tc);
+				border-radius: 4px;
+				border: 1px solid rgba(0,0,0,0.3);
+			}
+			input:focus, textarea:focus, button:focus{outline: none}
+			button{
+				background: var(--pc);
+				border:none;
+				color: var(--bg);
+				font-weight: bold;
+				border-radius: 1rem;
+				transition: all .3s;
+			}
+			button:hover{background: var(--sc); cursor: pointer;}
+			button.active{background: var(--tc)}
+			button.warning{background: var(--wc);}
+			label{color: var(--pc)}
+			form{width: 500px; background: var(--fg); padding: 1rem; box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;}
+			form > *{margin-bottom: 1rem;}
+			form > *:last-child{margin-bottom: 0rem}
+			h3{padding: 0px 1rem; color: var(--pc);}
+			h3 button{float: right;}
+			tabs{
+				position: absolute; top: 0px; left: 0px;
+				width: 100%;
+				height: 40px;
+				background: var(--fg);
+				display: grid;
+				grid-template-rows: 1fr;
+				grid-template-columns: 80px 80px 80px 80px 1fr;
+			}
+			tabs > *{border-bottom: 1px solid rgba(0,0,0,0.5); color: var(--tc)}
+			tabs tab{display: grid; place-items: center;}
+			tabs tab:hover,
+			tabs tab.active{background: var(--bg); cursor: pointer; border-bottom-color: var(--bg)}
+			tabs span{display: grid; align-items: center; justify-items: right; padding-right: 1rem;}
+			panels{position: absolute; top: 40px; left: 0px; width: 100%; height: calc(100% - 40px); transition: all 0.4s;}
+			panels panel{position: absolute; top: 0px; left: 0px; width: 100%; height: 100%; background: var(--bg); transition: all .3s; opacity: 0; user-select: none; -webkit-user-select: none; -ms-user-select: none; user-select: none; pointer-events: none;}
+			panels panel.active{user-select: auto; -webkit-user-select: auto; -ms-user-select: auto; user-select: auto; pointer-events: auto; opacity: 1;}
+			#panelImport{display: grid; place-items: center;}
+			#panelImport form textarea{min-height: 400px;}
+			#panelImport form span{text-align: center;color: var(--pc)}
+			#panelConfig{display: grid; place-items: center;}
+			#panelDesign{
+				display: grid;
+				grid-template-rows: 1fr;
+				grid-template-columns: 1fr 400px;
+			}
+			#panelDesign main{
+				position: relative; 
+				overflow: scroll;
+				scrollbar-width: auto;
+				scrollbar-color: #263f43 #212728;
+			}
+			#panelDesign main::-webkit-scrollbar{width: 16px}
+			#panelDesign main::-webkit-scrollbar-track{background: #212728}
+			#panelDesign main::-webkit-scrollbar-thumb{background-color: #263f43; border-radius: 10px; border: 3px solid #212728;}
+			#panelDesign main canvas{width: 10000px; height: 10000px;}
+			#panelDesign main #mainIndicator{position: absolute; z-index: 9; width: 16px; height: 16px; background: var(--pc); opacity: .5; user-select: none; pointer-events: none;}
+			#panelDesign main #mainIndicator.active{background: var(--wc)}
+			#panelDesign side{
+				background: var(--fg);
+				display: grid;
+				grid-template-rows: 1fr 450px;
+				grid-template-columns: 1fr;
+			}
+			#panelDesign side #sideLayers{}
+			#panelDesign side #sideLayers table{display: block; width: 100%; border-collapse: collapse;}
+			#panelDesign side #sideLayers table tbody{display: block; width: 100%;}
+			#panelDesign side #sideLayers table tr{
+				display: grid;
+				grid-template-rows: 1fr;
+				grid-template-columns: 30px 1fr 30px 30px 60px;
+				padding: 0px 1rem;
+			}
+			#panelDesign side #sideLayers table tr.active{background: var(--bg);}
+			#panelDesign side #sideLayers table tr td{padding: .5rem; color: var(--pc); display: grid; align-items: center;}
+			#panelDesign side #sideLayers table tr td input{background: transparent; border: none; color: var(--pc); margin: 0px;}
+			#panelDesign side #sideViewer{
+				display: grid; 
+				grid-template-rows: 1fr 400px;
+				grid-template-columns: 1fr;
+			}
+			#panelDesign side #sideViewer > div:nth-child(1){
+				display: grid;
+				grid-template-rows: 1fr;
+				grid-template-columns: 1fr 100px 50px 50px 50px 50px;
+				border-top: 1px solid rgba(0,0,0,0.5);
+				border-bottom: 1px solid rgba(0,0,0,0.5);
+			}
+			#panelDesign side #sideViewer #sideViewerDisplay > h3{display: grid; align-items: center; margin: 0px; padding-left: 1rem;}
+			#panelDesign side #sideViewer #sideViewerDisplay > div{
+				display: grid;
+				place-items: center;
+				padding-right: .5rem;
+			}
+			#panelDesign side #sideViewer #sideViewerDisplay > div + div{
+				display: grid;
+				grid-template-rows: 1fr 1fr;
+				grid-template-columns: 1fr;
+				border-left: 1px solid rgba(0,0,0,0.5);
+				padding: 0px;
+			}
+			#panelDesign side #sideViewer #sideViewerDisplay > div + div span{display: grid; place-items: center;}
+			#panelDesign side #sideViewer #sideViewerDisplay > div + div span + span{font-weight: bold;}
+			#panelDesign side #sideViewer #sideViewerSelector{scrollbar-width: auto; scrollbar-color: #212728 #263f43; overflow: scroll; position: relative;}
+			#panelDesign side #sideViewer #sideViewerSelector::-webkit-scrollbar{width: 16px}
+			#panelDesign side #sideViewer #sideViewerSelector::-webkit-scrollbar-track{background: #263f43}
+			#panelDesign side #sideViewer #sideViewerSelector::-webkit-scrollbar-thumb{background-color: #212728; border-radius: 10px; border: 3px solid #263f43;}
+			#panelDesign side #sideViewer #sideViewerSelector #sideViewerSelectorIndicator{position: absolute; z-index: 9; width: 16px; height: 16px; background: var(--pc); opacity: .2; user-select: none; pointer-events: none;}
+			#panelDesign side #sideViewer #sideViewerSelector #sideViewerSelectorIndicator.active{background: var(--wc)}
+			#panelDesign side #sideViewer #sideViewerSelector #sideViewerSelectoractive{position: absolute; z-index: 9; width: 16px; height: 16px; background: var(--pc); opacity: .5; user-select: none; pointer-events: none;}
+			#panelExport{display: grid; place-items: center;}
+			#panelExport form textarea{min-height: 400px;}
+			#panelExport form span{text-align: center;color: var(--pc)}
+		</style>
+		<script>
+			function q(query){return document.querySelector(query)}
+			function e(type, attributes = {}, children = []){
+				let element = document.createElement(type);
+				for(let attribute in attributes){element[attribute] = attributes[attribute]}
+				if(typeof children == 'string'){element.innerText = children}
+				else{children.forEach((c)=>{element.append(c)})}
+				return element
+			}
+		</script>
+	</head>
+	<body>
+	</body>
+	<script> // sheet
+		let sheet = {
+			i: 'tileset.png',
+			x: 0,
+			y: 0,
+			w: 16,
+			h: 16,
+			c: 10,
+			sheet: [
+				[
+					[1,2,1],
+					[2,1,2],
+					[1,2,1],
+				],
+			],
+			sheetLayerNames: ['Layer 1'],
+			sheetLayerActive: 0,
+			sheetTileActive: 1,
+			sheetErase: false,
+			sheetImage: '',
+			saveTimer: false,
+			save: function(){
+				if(sheet.saveTimer == false){
+					sheet.saveTimer = true;
+					setTimeout(()=>{
+						let object = {
+							i: sheet.i,
+							x: sheet.x,
+							y: sheet.y,
+							w: sheet.w,
+							h: sheet.h,
+							c: sheet.c,
+							sheet: sheet.sheet,
+							sheetLayerNames: sheet.sheetLayerNames,
+						};		
+						let string = JSON.stringify(object);
+						localStorage.setItem('json', string);
+						q('#panelExportTextarea').value = string;
+						
+						sheet.saveTimer = false;
+					}, 3000)					
+				}
+			},
+		};
+	</script>
+	<script> // get mouse position for mousemove events
+		function getPosition(event, sheet){
+			let o = {
+				x: event.offsetX,
+				y: event.offsetY,
+				col: Math.ceil(event.offsetX / sheet.w) - 1,
+				row: Math.ceil(event.offsetY / sheet.h) - 1,
+				w: sheet.w,
+				h: sheet.h,
+			};
+			o.top = o.row * sheet.h;
+			o.left = o.col * sheet.w;
+			o.tile = sheet.c * o.row + o.col + 1;
+			return o;
+		}
+	</script>
+	<script>// forces rerender on focus since chrome pauses canvas on tab out. 
+		window.onfocus = ()=>{
+			q('main canvas').render()
+		};
+	</script>
+	<script> // html
+		document.body.append(
+			e('tabs', {
+				id: 'tabs',
+				onclick: (e)=>{
+					let tab = e.target.closest('tab');
+					if(!tab){return false}
+					let panel = q(tab.for);
+					for(let i = 0; i < panel.parentElement.children.length; i++){
+						tab.parentElement.children[i].classList.remove('active');
+						panel.parentElement.children[i].classList.remove('active');
+					}
+					tab.classList.add('active');
+					panel.classList.add('active');
+				},
+			}, [
+				e('tab',  {id: 'tabsImport', for: '#panelImport', className: 'active'}, 'Import'),
+				e('tab',  {id: 'tabsConfig', for: '#panelConfig'}, 'Config'),
+				e('tab',  {id: 'tabsDesign', for: '#panelDesign'}, 'Design'),
+				e('tab',  {id: 'tabsExport', for: '#panelExport'}, 'Export'),
+				e('span', {id: ''}, 'v1 2024-05-01 Bryku'),
+			]),
+			e('panels', {}, [
+				// PANEL 1 ========================================================================================================
+				e('panel', {id: 'panelImport', className: 'active'}, [
+					e('form', {
+						onsubmit: (event)=>{
+							event.preventDefault();
+							let text = event.target.querySelector('textarea');
+							let file = event.target.querySelector('input');
+							let msg = event.target.querySelector('span');
+								msg.innerHTML = '';
+
+							if(text.value.length < 1){msg.innerHTML = 'Json Required'; return false}
+
+							let json = false;
+							try{json = JSON.parse(text.value)}
+							catch(e){msg.innerHTML = 'Json Invalid'; return false}
+							if(typeof json.i == 'undefined'){msg.innerHTML = 'JSON Missing {i: "?"}'; return false}
+							if(typeof json.w == 'undefined'){msg.innerHTML = 'JSON Missing {w: ?}'; return false}
+							if(typeof json.h == 'undefined'){msg.innerHTML = 'JSON Missing {h: ?}'; return false}
+							if(typeof json.c == 'undefined'){msg.innerHTML = 'JSON Missing {c: ?}'; return false}
+							if(typeof json.x == 'undefined'){msg.innerHTML = 'JSON Missing {x: ?}'; return false}
+							if(typeof json.y == 'undefined'){msg.innerHTML = 'JSON Missing {y: ?}'; return false}
+							if(file.files.length == 0){msg.innerHTML = 'File Required'; return false}
+							
+							sheet.w = json.w;
+							sheet.h = json.h;
+							sheet.c = json.c;
+							sheet.i = json.i;
+							sheet.x = json.x;
+							sheet.y = json.y;
+							sheet.sheet = json.sheet;
+							sheet.sheetLayerNames = json.sheetLayerNames || json.sheet.map((_, i)=>{return `Layer ${i + 1}`});
+							sheet.sheetLayerActive = json.sheetLayerActive || 0;
+							sheet.sheetTileActive = json.sheetTileActive || 0;
+							sheet.sheetErase = false;
+							sheet.sheetImage = '';
+							
+							q('#configSpriteWidth').value = json.w;
+							q('#configSpriteHeight').value = json.h;
+							q('#configSheetX').value = json.x;
+							q('#configSheetY').value = json.y;
+							q('#configSheetC').value = json.c;
+							q('#configImageUrl').value = json.i;
+
+							q('#configImageFile').remove();							
+							let imageFile = q('#panelImport input').cloneNode();
+								imageFile.id = 'configImageFile';
+							q('#panelConfig form').append(imageFile);
+							q('#panelConfig form center').remove();
+							q('#panelConfig form').append(
+								e('center', {}, [
+									e('button', {}, 'Build Sheet')
+								])
+							);
+							q('#tabsConfig').click();
+						},
+					}, [
+						e('center', {}, 'If you are starting a new project, skip this by clicking on [config].'),
+						e('label', {}, 'Json'),
+						e('textarea', {}, localStorage.getItem('json') || ''),
+						e('label', {}, 'Image'),
+						e('input', {type: 'file'}),
+						e('center', {}, [
+							e('button', {}, 'Import Sheet'),
+						]),
+						e('center', {}, [
+							e('span', {}),
+						]),
+					])
+				]),
+				// PANEL 2 ========================================================================================================
+				e('panel', {id: 'panelConfig'}, [
+					e('form', {
+						onsubmit: (event)=>{
+							event.preventDefault();
+							q('#mainIndicator').style.width = sheet.w;
+							q('#mainIndicator').style.height = sheet.h;
+							q('#sideViewerSelectorIndicator').style.width = sheet.w;
+							q('#sideViewerSelectorIndicator').style.height = sheet.h;
+							
+							let reader = new FileReader();
+								reader.onload = function(e){
+									q('#sideViewerSelectorImage').onload = ()=>{q('#mainCanvas').render()}
+									q('#sideViewerSelectorImage').src = e.target.result;
+									sheet.sheetImage = e.target.result;
+								}
+								reader.readAsDataURL(q('#configImageFile').files[0]);
+							q('#sideLayersTable tbody').render();
+							q('#tabsDesign').click();
+						},
+					}, [
+						e('label', {}, 'Sprite Width'),
+						e('input', {id: 'configSpriteWidth', type: 'number', min: '6', max: '100'}),
+						e('label', {}, 'Sprite Height'),
+						e('input', {id: 'configSpriteHeight', type: 'number', min: '6', max: '100'}),
+						e('label', {}, 'Sheet X'),
+						e('input', {id: 'configSheetX', type: 'number', value: '0'}),
+						e('label', {}, 'Sheet Y'),
+						e('input', {id: 'configSheetY', type: 'number', value: '0'}),
+						e('label', {}, 'Sheet C'),
+						e('input', {id: 'configSheetC', type: 'number', value: '0'}),
+						e('label', {}, 'Image URL'),
+						e('input', {id: 'configImageUrl', type: 'string'}),
+						e('label', {}, 'Image File'),
+						e('input', {id: 'configImageFile', type: 'file'}, 'Image File'),
+						e('center', {}, [
+							e('button', {}, 'Build Sheet')
+						])
+					])
+				]),
+				// PANEL 3 ========================================================================================================
+				e('panel', {id: 'panelDesign'}, [
+					e('main', {}, [
+						e('canvas', {
+							id: 'mainCanvas',
+							render: ()=>{
+								let canvas = q('#mainCanvas');
+								if(canvas){
+									canvas.width = canvas.offsetWidth;
+									canvas.height = canvas.offsetHeight;
+								}
+								let context = canvas.getContext('2d', {alpha: true});
+									context.webkitImageSmoothingEnable = false;
+									context.mozImageSmoothingEnabled = false;
+									context.imageSmoothingEnabled = false;
+									context.clearRect(0, 0, this.width, this.height);
+								let sx = 0;
+								let sy = 0;
+								let sw = sheet.w;
+								let sh = sheet.h;
+								let dx = 0;
+								let dy = 0;
+								let dw = sheet.w;
+								let dh = sheet.h;
+								
+								if(q('#sideViewerSelectorImage').src){
+									sheet.sheet.forEach((layer)=>{
+										layer.forEach((row, rowIndex)=>{
+											row.forEach((col, colIndex)=>{
+												if(col != 0){
+													sx = (Math.floor(col % sheet.c) - 1) * sheet.w
+													sy = Math.floor(col / sheet.c) * sheet.h;
+													dx = colIndex * sheet.h;
+													dy = rowIndex * sheet.w;
+													context.drawImage(q('#sideViewerSelectorImage'), sx, sy, sw, sh, dx, dy, dw, dh);
+												}
+											})
+										})
+									})
+								}
+							},
+							onmousemove: ()=>{
+								let position = getPosition(event, sheet);
+								if(position.x > 0 && position.y > 0){
+									let canvasIndicator = q('#mainIndicator');
+										canvasIndicator.style.left = position.left + 'px';
+										canvasIndicator.style.top = position.top + 'px';
+										q('#sideViewerDisplayX').innerText = position.left;
+										q('#sideViewerDisplayY').innerText = position.top;
+										q('#sideViewerDisplayRow').innerText = position.row + 1;
+										q('#sideViewerDisplayCol').innerText = position.col + 1;
+								}
+							},
+							onclick: ()=>{
+								let position = getPosition(event, sheet);
+								let layer = sheet.sheet[sheet.sheetLayerActive];
+								if(layer){
+									for(let rowIndex = 0; rowIndex <= position.row; rowIndex++){
+										if(!layer[rowIndex]){layer[rowIndex] = []}
+										for(let colIndex = 0; colIndex <= position.col; colIndex++){
+											if(!layer[rowIndex][colIndex]){layer[rowIndex][colIndex] = 0}
+											if(rowIndex == position.row && colIndex == position.col){
+												if(sheet.sheetErase){
+													layer[rowIndex][colIndex] = 0
+												}else{
+													layer[rowIndex][colIndex] = sheet.sheetTileActive
+												}
+												sheet.save();
+											}
+										}
+									}
+									q('#mainCanvas').render();
+								}
+							},
+						}),
+						e('div', {id: 'mainIndicator'}),
+					]),
+					e('side', {}, [
+						e('div', {id: 'sideLayers'},[
+							e('h3', {innerText: 'Layers'}, [
+								e('button', {
+									onclick: ()=>{
+										sheet.sheet.push([]);
+										sheet.sheetLayerNames.push(`Layer ${sheet.sheet.length}`);
+										q('#sideLayersTable tbody').render();
+									},
+								}, 'Add Layer'),
+							]),
+							e('table', {id: 'sideLayersTable'}, [
+								e('tbody', {
+									render: ()=>{
+										q('#sideLayersTable tbody').innerHTML = '';
+										sheet.sheetLayerNames.forEach((layer, layerIndex)=>{
+											q('#sideLayersTable tbody').append(e('tr', {className: sheet.sheetLayerActive == layerIndex ? 'active' : ''}, [
+												e('td', {}, [
+													e('button', {
+														onclick: ()=>{
+															sheet.sheetLayerActive = layerIndex;
+															q('#sideLayersTable tbody').render();
+														},
+													}, String(layerIndex + 1))
+												]),
+												e('td', {}, [
+													e('input', {
+														value: sheet.sheetLayerNames[layerIndex],
+														onkeyup: ()=>{
+															sheet.sheetLayerNames[i] = event.target.value;
+														},
+													}),
+												]),
+												e('td', {}, [
+													e('button', {
+														onclick: ()=>{
+															if(layerIndex > 0){
+																let layerFrom = JSON.stringify(sheet.sheet[layerIndex]);
+																let layerTo = JSON.stringify(sheet.sheet[layerIndex - 1]);
+																sheet.sheet[layerIndex] = JSON.parse(layerTo);
+																sheet.sheet[layerIndex - 1] = JSON.parse(layerFrom);
+																if(sheet.sheetLayerActive == layerIndex){
+																	sheet.sheetLayerActive--;
+																}else if(sheet.sheetLayerActive == layerIndex - 1){
+																	sheet.sheetLayerActive++;
+																}
+			
+																let nameFrom = JSON.stringify(sheet.sheetLayerNames[layerIndex]);
+																let nameTo = JSON.stringify(sheet.sheetLayerNames[layerIndex - 1]);
+																sheet.sheetLayerNames[layerIndex] = JSON.parse(nameTo);
+																sheet.sheetLayerNames[layerIndex - 1] = JSON.parse(nameFrom);
+										
+																q('#sideLayersTable tbody').render();
+																q('#mainCanvas').render();
+																sheet.save();
+															}
+														},
+													}, "/\\"),
+												]),
+												e('td', {}, [
+													e('button', {
+														onclick: ()=>{
+															if(layerIndex < sheet.sheetLayerNames.length - 1){
+																let layerFrom = JSON.stringify(sheet.sheet[layerIndex]);
+																let layerTo = JSON.stringify(sheet.sheet[layerIndex + 1]);
+																sheet.sheet[layerIndex] = JSON.parse(layerTo);
+																sheet.sheet[layerIndex + 1] = JSON.parse(layerFrom);
+																if(sheet.sheetLayerActive == layerIndex){
+																	sheet.sheetLayerActive++;
+																}else if(sheet.sheetLayerActive == layerIndex + 1){
+																	sheet.sheetLayerActive--;
+																}
+			
+																let nameFrom = JSON.stringify(sheet.sheetLayerNames[layerIndex]);
+																let nameTo = JSON.stringify(sheet.sheetLayerNames[layerIndex + 1]);
+																sheet.sheetLayerNames[layerIndex] = JSON.parse(nameTo);
+																sheet.sheetLayerNames[layerIndex + 1] = JSON.parse(nameFrom);
+										
+																q('#sideLayersTable tbody').render();
+																q('#mainCanvas').render();
+																sheet.save();
+															}
+														},
+													}, "\\/"),
+												]),
+												e('td', {}, [
+													e('button', {
+														onclick: ()=>{
+															if(sheet.sheetLayerNames.length == 1){
+																alert('Error: At least one Layer is required.'); 
+																return false
+															}
+															if(confirm(`Confirm: Do you want to delete the following layer?\n    Layer Number: "${layerIndex + 1}"\n    Layer Name: "${sheet.sheetLayerNames[layerIndex]}"\nWarning: You can not undo this.`)){
+																if(confirm(`LAST WARNING!!!\n\nConfirm: Do you want to delete the following layer?\n    Layer Number: "${layerIndex + 1}"\n    Layer Name: "${sheet.sheetLayerNames[layerIndex]}"\nWarning: You can not undo this.`)){
+																	sheet.sheet.splice(layerIndex, 1);
+																	sheet.sheetLayerNames.splice(layerIndex, 1);
+																	q('#sideLayersTable tbody').render();
+																	q('#mainCanvas').render();
+																	sheet.save();
+																}
+															}
+														}
+													}, 'Delete')
+												]),
+											]));
+										})
+									},
+								})
+							]),
+						]),
+						e('div', {id: 'sideViewer'}, [
+							e('div', {id: 'sideViewerDisplay'}, [
+								e('h3', {}, 'Viewer'),
+								e('div', {}, [
+									e('button', {
+										id: 'sideViewerDisplayErase',
+										onclick: ()=>{
+											if(sheet.sheetErase){
+												sheet.sheetErase = false;
+												q('#mainIndicator').classList.remove('active');
+												q('#sideViewerDisplayErase').classList.remove('warning');
+											}else{
+												sheet.sheetErase = true;
+												q('#mainIndicator').classList.add('active');
+												q('#sideViewerDisplayErase').classList.add('warning');
+											}
+										},
+									}, 'Erase Mode'),
+								]),
+								e('div', {}, [
+									e('span', {}, 'X'),
+									e('span', {id: 'sideViewerDisplayX'}, '0'),
+								]),
+								e('div', {}, [
+									e('span', {}, 'Y'),
+									e('span', {id: 'sideViewerDisplayY'}, '0'),
+								]),
+								e('div', {}, [
+									e('span', {}, 'Row'),
+									e('span', {id: 'sideViewerDisplayRow'}, '0'),
+								]),
+								e('div', {}, [
+									e('span', {}, 'Col'),
+									e('span', {id: 'sideViewerDisplayCol'}, '0'),
+								]),
+							]),
+							e('div', {
+								id: 'sideViewerSelector',
+							}, [
+								e('img', {
+									id: 'sideViewerSelectorImage',
+									onmousemove: ()=>{
+										let position = getPosition(event, sheet);
+										if(position.x > 0 && position.y > 0){
+											q('#sideViewerSelectorIndicator').style.left = position.left + 'px';
+											q('#sideViewerSelectorIndicator').style.top = position.top + 'px';
+										}
+									},
+									onclick: ()=>{
+										let position = getPosition(event, sheet);
+										if(position.x > 0 && position.y > 0){
+											q('#sideViewerSelectorActive').style.left = position.left + 'px';
+											q('#sideViewerSelectorActive').style.top = position.top + 'px';
+											q('#sideViewerSelectorActive').style.width = position.w + 'px';
+											q('#sideViewerSelectorActive').style.height = position.h + 'px';
+											sheet.sheetTileActive = position.tile;
+										}									
+									},
+								}),
+								e('div', {id: 'sideViewerSelectorIndicator'}),
+								e('div', {id: 'sideViewerSelectorActive'}),
+							]),
+						]),						
+					]),
+				]),
+				// PANEL 4 ========================================================================================================
+				e('panel', {id: 'panelExport'}, [
+					e('form', {}, [
+						e('label', {}, 'Json'),
+						e('textarea', {id: 'panelExportTextarea'}, localStorage.getItem('json')),
+						e('center', {}, [
+							e('button', {
+								onclick: (event)=>{
+									event.preventDefault();
+									q('#panelExportTextarea').select();
+									document.execCommand('copy');
+								},
+							}, 'Copy'),
+							e('button', {
+								onclick: ()=>{
+									
+								},
+							}, 'Download'),
+						]),
+					])
+				]),
+			]),
+		);
+	</script>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
